@@ -1,54 +1,73 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-const photos = [
+// Dynamic import of all gallery images using Vite's import.meta.glob
+// This automatically imports all images from the specified folders
+const galleryModules = import.meta.glob("/public/assets/gallery/**/*.{jpg,jpeg,png,webp}", { eager: true });
+
+// Helper function to get photos from a specific folder
+function getPhotosFromFolder(folderPath) {
+  const photos = [];
+  const prefix = `/public/assets/gallery/${folderPath}/`;
   
-  "IMG-20260915-WA0017.jpg","IMG-20260915-WA0012.jpg","IMG-20260915-WA0003.jpg",
-  "IMG-20260915-WA0010.jpg","IMG-20260915-WA0013.jpg","IMG-20260915-WA0005.jpg", 
-  "IMG-20260915-WA0011.jpg","IMG-20260915-WA0009.jpg","IMG-20260915-WA0004.jpg",
-  "IMG-20260915-WA0018.jpg","IMG-20260915-WA0007.jpg","IMG-20260915-WA0008.jpg",
-  "IMG-20260915-WA0014.jpg","IMG-20260915-WA0019.jpg","IMG-20260915-WA0015.jpg",
-  "IMG-20260915-WA0016.jpg","IMG-20260915-WA0006.jpg","IMG-20260915-WA0020.jpg",
-  "IMG-20260915-WA0000.jpg","IMG-20260915-WA0002.jpg","IMG-20260908-WA0013.jpg",
-  "IMG-20260908-WA0015.jpg","IMG-20260908-WA0016.jpg","IMG-20260908-WA0075.jpg",
-  "IMG-20260908-WA0017.jpg","IMG-20260908-WA0018.jpg", "IMG-20260908-WA0019.jpg",
-  "IMG-20260908-WA0020.jpg","IMG-20260908-WA0021.jpg", "IMG-20260908-WA0022.jpg",
-  "IMG-20260908-WA0023.jpg","IMG-20260908-WA0024.jpg", "IMG-20260908-WA0025.jpg",
-  "IMG-20260908-WA0026.jpg","IMG-20260908-WA0027.jpg", "IMG-20260908-WA0028.jpg",
-  "IMG-20260908-WA0029.jpg","IMG-20260908-WA0030.jpg", "IMG-20260908-WA0031.jpg",
-  "IMG-20260908-WA0032.jpg","IMG-20260908-WA0033.jpg", "IMG-20260908-WA0034.jpg",
-  "IMG-20260908-WA0035.jpg","IMG-20260908-WA0036.jpg", "IMG-20260908-WA0037.jpg",
-  "IMG-20260908-WA0038.jpg","IMG-20260908-WA0039.jpg", "IMG-20260908-WA0040.jpg",
-  "IMG-20260908-WA0041.jpg","IMG-20260908-WA0042.jpg", "IMG-20260908-WA0043.jpg",
-  "IMG-20260908-WA0044.jpg","IMG-20260908-WA0045.jpg", "IMG-20260908-WA0046.jpg",
-  "IMG-20260908-WA0047.jpg","IMG-20260908-WA0048.jpg", "IMG-20260908-WA0049.jpg",
-  "IMG-20260908-WA0050.jpg","IMG-20260908-WA0051.jpg", "IMG-20260908-WA0052.jpg",
-  "IMG-20260908-WA0054.jpg","IMG-20260908-WA0055.jpg", "IMG-20260908-WA0056.jpg",
-  "IMG-20260908-WA0057.jpg","IMG-20260908-WA0058.jpg", "IMG-20260908-WA0059.jpg",
-  "IMG-20260908-WA0060.jpg","IMG-20260908-WA0061.jpg", "IMG-20260908-WA0062.jpg",
-  "IMG-20260908-WA0063.jpg","IMG-20260908-WA0064.jpg", "IMG-20260908-WA0065.jpg",
-  "IMG-20260908-WA0066.jpg","IMG-20260908-WA0067.jpg", "IMG-20260908-WA0068.jpg",
-  "IMG-20260908-WA0069.jpg","IMG-20260908-WA0070.jpg", "IMG-20260908-WA0071.jpg",
-  "IMG-20260908-WA0072.jpg","IMG-20260908-WA0073.jpg", "IMG-20260908-WA0074.jpg",
+  Object.keys(galleryModules).forEach((key) => {
+    if (key.startsWith(prefix)) {
+      // Extract the relative path from the folder
+      const relativePath = key.replace("/public/assets/gallery/", "");
+      photos.push(relativePath);
+    }
+  });
+  
+  // Sort photos alphabetically for consistent ordering
+  return photos.sort();
+}
+
+// Photo categories with dynamic folder-based photo loading
+const photoCategories = [
+  {
+    id: "essay-competition",
+    title: "हिन्दी पखवाड़ा निबंध लेखन प्रतियोगिता",
+    subtitle: "17 सितंबर 2026",
+    folder: "17-09-2026", // Folder name under public/assets/gallery/
+  },{
+    id: "rajbhasha-sammelan",
+    title: "छठा अखिल भारतीय राजभाषा सम्मेलन",
+    subtitle: "नवी मुंबई 14-15 सितंबर 2026",
+    folder: "rajbhasha-sammelan", // Folder name under public/assets/gallery/
+  },
+  {
+    id: "hindi-pakhwada-2025",
+    title: "हिन्दी पखवाड़ा 2025",
+    subtitle: "",
+    folder: "hindi-pakhwada-2025", // Folder name under public/assets/gallery/
+  }
+  
 ];
 
+// Load photos dynamically for each category
+photoCategories.forEach((category) => {
+  if (category.folder) {
+    category.photos = getPhotosFromFolder(category.folder);
+  }
+});
+
+const PREVIEW_COUNT = 6; // Number of photos to show in single row preview
+const PHOTOS_PER_PAGE = 12; // 2 rows of 6 photos each
+
 export default function PhotoGallery() {
-  const photosPerPage = 15;
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [openedVideo, setOpenedVideo] = useState(null);
-
   const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [photoPage, setPhotoPage] = useState(1);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const [categoryPages, setCategoryPages] = useState({}); // Track page number per category
   const videoRef = useRef(null);
-  const totalPages = Math.ceil(photos.length / photosPerPage);
-  const visiblePhotos = photos.slice((photoPage - 1) * photosPerPage, photoPage * photosPerPage);
 
-  function showPreviousPhoto() {
-    setSelectedPhoto((current) => (current - 1 + photos.length) % photos.length);
+  function showPreviousPhoto(categoryPhotos, currentIndex) {
+    setSelectedPhoto((current) => (current - 1 + categoryPhotos.length) % categoryPhotos.length);
   }
 
-  function showNextPhoto() {
-    setSelectedPhoto((current) => (current + 1) % photos.length);
+  function showNextPhoto(categoryPhotos, currentIndex) {
+    setSelectedPhoto((current) => (current + 1) % categoryPhotos.length);
   }
 
   useEffect(() => {
@@ -57,9 +76,16 @@ export default function PhotoGallery() {
       if (event.key === "Escape") {
         setIsVideoOpen(false);
         setSelectedPhoto(null);
+        setExpandedCategory(null);
       }
-      if (selectedPhoto !== null && event.key === "ArrowLeft") showPreviousPhoto();
-      if (selectedPhoto !== null && event.key === "ArrowRight") showNextPhoto();
+      if (selectedPhoto !== null && event.key === "ArrowLeft") {
+        const category = photoCategories.find((c) => c.id === expandedCategory);
+        if (category) showPreviousPhoto(category.photos, selectedPhoto);
+      }
+      if (selectedPhoto !== null && event.key === "ArrowRight") {
+        const category = photoCategories.find((c) => c.id === expandedCategory);
+        if (category) showNextPhoto(category.photos, selectedPhoto);
+      }
     };
     document.addEventListener("keydown", closeOnEscape);
     document.body.style.overflow = "hidden";
@@ -67,16 +93,25 @@ export default function PhotoGallery() {
       document.removeEventListener("keydown", closeOnEscape);
       document.body.style.overflow = "";
     };
-  }, [isVideoOpen, selectedPhoto]);
+  }, [isVideoOpen, selectedPhoto, expandedCategory]);
 
   useEffect(() => {
     if (isVideoOpen) videoRef.current?.play().catch(() => {});
   }, [isVideoOpen]);
 
-const handlevieoPreview =(name)=>{
-    setIsVideoOpen(true)
-    setOpenedVideo(name)
-}
+  const handleVideoPreview = (name) => {
+    setIsVideoOpen(true);
+    setOpenedVideo(name);
+  };
+
+  const handleCategoryClick = (categoryId) => {
+    setExpandedCategory((prev) => (prev === categoryId ? null : categoryId));
+  };
+
+  const handlePhotoClick = (categoryId, photoIndex) => {
+    setExpandedCategory(categoryId);
+    setSelectedPhoto(photoIndex);
+  };
 
   return (
     <div className="page gallery-page">
@@ -88,7 +123,7 @@ const handlevieoPreview =(name)=>{
         <h2 className="gallery-section-title">वीडियो</h2>
         <div className="gallery-video-grid">
           <figure className="gallery-item gallery-video-item">
-            <button className="gallery-video-preview" type="button" onClick={() => handlevieoPreview("/assets/gallery/video.mp4")} aria-label="वीडियो पूर्ण स्क्रीन में चलाएं">
+            <button className="gallery-video-preview" type="button" onClick={() => handleVideoPreview("/assets/gallery/video.mp4")} aria-label="वीडियो पूर्ण स्क्रीन में चलाएं">
               <video autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
                 <source src="/assets/gallery/video.mp4" type="video/mp4" />
               </video>
@@ -97,7 +132,7 @@ const handlevieoPreview =(name)=>{
             {/* <figcaption>हिन्दी पखवाड़ा कार्यक्रम वीडियो</figcaption> */}
           </figure>
           <figure className="gallery-item gallery-video-item">
-            <button className="gallery-video-preview" type="button" onClick={() => handlevieoPreview("/assets/gallery/VID-20260908-WA0053.mp4")} aria-label="वीडियो पूर्ण स्क्रीन में चलाएं">
+            <button className="gallery-video-preview" type="button" onClick={() => handleVideoPreview("/assets/gallery/VID-20260908-WA0053.mp4")} aria-label="वीडियो पूर्ण स्क्रीन में चलाएं">
               <video autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
                 <source src="/assets/gallery/VID-20260908-WA0053.mp4" type="video/mp4" />
               </video>
@@ -109,24 +144,127 @@ const handlevieoPreview =(name)=>{
       </section>
       <section className="gallery-section">
         <h2 className="gallery-section-title">फोटो</h2>
-        <div className="gallery-grid">
-          {visiblePhotos.map((file) => {
-            const photoIndex = photos.indexOf(file);
-            return <figure className="gallery-item" key={file}>
-              <button className="gallery-photo-preview" type="button" onClick={() => setSelectedPhoto(photoIndex)} aria-label="फोटो बड़ा करके देखें">
-                <img src={`/assets/gallery/${file}`} alt="हिन्दी पखवाड़ा कार्यक्रम" />
-              </button>
-              {/* <figcaption>हिन्दी पखवाड़ा कार्यक्रम फोटो</figcaption> */}
-            </figure>;
-          })}
-        </div>
-        <div className="gallery-pagination" aria-label="फोटो पेज चयन">
-          <button type="button" className="gallery-page-button" disabled={photoPage === 1} onClick={() => setPhotoPage((page) => page - 1)}>‹</button>
-          {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-            <button key={page} type="button" className={`gallery-page-button${page === photoPage ? " is-active" : ""}`} onClick={() => setPhotoPage(page)}>{page}</button>
-          ))}
-          <button type="button" className="gallery-page-button" disabled={photoPage === totalPages} onClick={() => setPhotoPage((page) => page + 1)}>›</button>
-        </div>
+        {photoCategories.map((category) => {
+          const isExpanded = expandedCategory === category.id;
+          const previewPhotos = category.photos.slice(0, PREVIEW_COUNT);
+          const remainingCount = category.photos.length - PREVIEW_COUNT;
+          
+          // Pagination for expanded view
+          const currentPage = categoryPages[category.id] || 1;
+          const totalPages = Math.ceil(category.photos.length / PHOTOS_PER_PAGE);
+          const startIndex = (currentPage - 1) * PHOTOS_PER_PAGE;
+          const endIndex = startIndex + PHOTOS_PER_PAGE;
+          const paginatedPhotos = category.photos.slice(startIndex, endIndex);
+          
+          return (
+            <div key={category.id} className="photo-category-card">
+              <div className="photo-category-header" onClick={() => handleCategoryClick(category.id)}>
+                <div className="photo-category-info">
+                  <h3 className="photo-category-title">{category.title}</h3>
+                  {category.subtitle && <p className="photo-category-subtitle">{category.subtitle}</p>}
+                </div>
+                <div className="photo-category-meta">
+                  <span className="photo-count">{category.photos.length} फोटो</span>
+                  <span className="expand-icon" aria-hidden="true">
+                    {isExpanded ? "▲" : "▼"}
+                  </span>
+                </div>
+              </div>
+              <div className="photo-category-content">
+                <div className={`photo-category-grid ${isExpanded ? "expanded" : ""}`}>
+                  {!isExpanded ? (
+                    // Preview mode - show first 6 photos
+                    <>
+                      {previewPhotos.map((file, index) => {
+                        const photoIndex = category.photos.indexOf(file);
+                        return (
+                          <figure key={file} className="gallery-item">
+                            <button
+                              className="gallery-photo-preview"
+                              type="button"
+                              onClick={() => handlePhotoClick(category.id, photoIndex)}
+                              aria-label={`${category.title} - फोटो ${photoIndex + 1} बड़ा करके देखें`}
+                            >
+                              <img src={`/assets/gallery/${file}`} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
+                            </button>
+                          </figure>
+                        );
+                      })}
+                      {remainingCount > 0 && (
+                        <button
+                          className="gallery-item view-more-btn"
+                          type="button"
+                          onClick={() => handleCategoryClick(category.id)}
+                          aria-label={`${category.title} के सभी ${remainingCount} और फोटो देखें`}
+                        >
+                          <span className="view-more-content">
+                            <span aria-hidden="true">+{remainingCount}</span>
+                            <span>और देखें</span>
+                          </span>
+                        </button>
+                      )}
+                      {category.photos.length === 0 && (
+                        <div className="empty-category-message">
+                          <p>इस श्रेणी में अभी कोई फोटो नहीं है</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    // Expanded mode - show paginated photos
+                    <>
+                      {paginatedPhotos.map((file, index) => {
+                        const photoIndex = category.photos.indexOf(file);
+                        return (
+                          <figure key={file} className="gallery-item">
+                            <button
+                              className="gallery-photo-preview"
+                              type="button"
+                              onClick={() => handlePhotoClick(category.id, photoIndex)}
+                              aria-label={`${category.title} - फोटो ${photoIndex + 1} बड़ा करके देखें`}
+                            >
+                              <img src={`/assets/gallery/${file}`} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
+                            </button>
+                          </figure>
+                        );
+                      })}
+                    </>
+                  )}
+                </div>
+                {/* Pagination outside grid but inside category - fixed position at bottom */}
+                {isExpanded && totalPages > 1 && (
+                  <div className="category-pagination" aria-label={`${category.title} पेज चयन`}>
+                    <button
+                      type="button"
+                      className="gallery-page-button"
+                      disabled={currentPage === 1}
+                      onClick={() => setCategoryPages((prev) => ({ ...prev, [category.id]: currentPage - 1 }))}
+                    >
+                      ‹
+                    </button>
+                    {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                      <button
+                        key={page}
+                        type="button"
+                        className={`gallery-page-button${page === currentPage ? " is-active" : ""}`}
+                        onClick={() => setCategoryPages((prev) => ({ ...prev, [category.id]: page }))}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="gallery-page-button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCategoryPages((prev) => ({ ...prev, [category.id]: currentPage + 1 }))}
+                    >
+                      ›
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </section>
       {isVideoOpen && createPortal(
         <div className="video-modal" role="dialog" aria-modal="true" aria-label="हिन्दी पखवाड़ा कार्यक्रम वीडियो" onMouseDown={(event) => {
@@ -140,14 +278,23 @@ const handlevieoPreview =(name)=>{
         </div>,
         document.body
       )}
-      {selectedPhoto !== null && createPortal(
+      {selectedPhoto !== null && expandedCategory && createPortal(
         <div className="photo-modal" role="dialog" aria-modal="true" aria-label="फोटो पूर्वावलोकन" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setSelectedPhoto(null);
+          if (event.target === event.currentTarget) {
+            setSelectedPhoto(null);
+            setExpandedCategory(null);
+          }
         }}>
-          <button className="photo-modal-close" type="button" onClick={() => setSelectedPhoto(null)} aria-label="फोटो बंद करें">×</button>
-          <button className="photo-modal-arrow photo-modal-prev" type="button" onClick={showPreviousPhoto} aria-label="पिछली फोटो">‹</button>
-          <img src={`/assets/gallery/${photos[selectedPhoto]}`} alt="हिन्दी पखवाड़ा कार्यक्रम" />
-          <button className="photo-modal-arrow photo-modal-next" type="button" onClick={showNextPhoto} aria-label="अगली फोटो">›</button>
+          <button className="photo-modal-close" type="button" onClick={() => { setSelectedPhoto(null); setExpandedCategory(null); }} aria-label="फोटो बंद करें">×</button>
+          <button className="photo-modal-arrow photo-modal-prev" type="button" onClick={() => {
+            const category = photoCategories.find((c) => c.id === expandedCategory);
+            if (category) showPreviousPhoto(category.photos, selectedPhoto);
+          }} aria-label="पिछली फोटो">‹</button>
+          <img src={`/assets/gallery/${photoCategories.find((c) => c.id === expandedCategory).photos[selectedPhoto]}`} alt={`${photoCategories.find((c) => c.id === expandedCategory).title} - फोटो ${selectedPhoto + 1}`} />
+          <button className="photo-modal-arrow photo-modal-next" type="button" onClick={() => {
+            const category = photoCategories.find((c) => c.id === expandedCategory);
+            if (category) showNextPhoto(category.photos, selectedPhoto);
+          }} aria-label="अगली फोटो">›</button>
         </div>,
         document.body
       )}
