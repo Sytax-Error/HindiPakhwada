@@ -80,10 +80,10 @@ const handlevieoPreview =(name)=>{
 
   return (
     <div className="page gallery-page">
-      <header className="directions-title">
+      {/* <header className="directions-title">
         <p>हिन्दी पखवाड़ा 2026</p>
         <h1>गैलरी</h1>
-      </header>
+      </header> */}
       <section className="gallery-section">
         <h2 className="gallery-section-title">वीडियो</h2>
         <div className="gallery-video-grid">
