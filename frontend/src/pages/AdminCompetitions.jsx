@@ -21,6 +21,9 @@ export default function AdminCompetitions() {
   const [message, setMessage] = useState("");
   const [attendance, setAttendance] = useState(null);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editErrors, setEditErrors] = useState({});
 
   async function load() {
     try {
@@ -89,6 +92,76 @@ export default function AdminCompetitions() {
       await load();
     } catch (err) {
       setMessage(err.response?.data?.message || "प्रतियोगिता निष्क्रिय नहीं हो सकी।");
+    }
+  }
+
+  function startEdit(competition) {
+    setEditingId(competition._id);
+    // Format date and datetime-local for input fields
+    const date = new Date(competition.date).toISOString().split('T')[0];
+    const deadline = new Date(competition.registrationDeadline).toISOString().slice(0, 16);
+    setEditForm({
+      name: competition.name,
+      description: competition.description || "",
+      date: date,
+      time: competition.time || "2:30 PM",
+      duration: competition.duration || "",
+      registrationDeadline: deadline,
+      minParticipants: competition.minParticipants || 9,
+    });
+    setEditErrors({});
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm({});
+    setEditErrors({});
+  }
+
+  function updateEditField(field, value) {
+    setEditForm((f) => ({ ...f, [field]: value }));
+    setEditErrors((e) => ({ ...e, [field]: "" }));
+  }
+
+  function validateEdit() {
+    const e = {};
+    if (!editForm.name.trim()) e.name = "नाम आवश्यक है।";
+    else if (editForm.name.trim().length < 3) e.name = "नाम कम से कम 3 अक्षर का होना चाहिए।";
+
+    if (!editForm.date) e.date = "दिनांक आवश्यक है।";
+    if (!editForm.time.trim()) e.time = "समय आवश्यक है।";
+    if (!editForm.registrationDeadline) e.registrationDeadline = "नामांकन अंतिम तिथि आवश्यक है।";
+
+    if (editForm.date && editForm.registrationDeadline) {
+      const compDateEnd = new Date(editForm.date);
+      compDateEnd.setHours(23, 59, 59, 999);
+      const deadline = new Date(editForm.registrationDeadline);
+      if (deadline > compDateEnd) {
+        e.registrationDeadline = "नामांकन अंतिम तिथि प्रतियोगिता की तारीख के बाद नहीं हो सकती।";
+      }
+    }
+
+    if (editForm.minParticipants === "" || editForm.minParticipants === null || Number(editForm.minParticipants) < 1) {
+      e.minParticipants = "न्यूनतम प्रतियोगी संख्या 1 या अधिक होनी चाहिए।";
+    }
+
+    return e;
+  }
+
+  async function handleEditSubmit(ev) {
+    ev.preventDefault();
+    setMessage("");
+    const fieldErrors = validateEdit();
+    setEditErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) return;
+
+    try {
+      await api.put(`/competitions/${editingId}`, editForm);
+      setMessage("प्रतियोगिता सफलतापूर्वक अपडेट की गई।");
+      cancelEdit();
+      await load();
+    } catch (err) {
+      setMessage(err.response?.data?.message || "त्रुटि हुई");
     }
   }
 
@@ -233,6 +306,90 @@ export default function AdminCompetitions() {
         </button>
       </form>
 
+      {/* Edit Form */}
+      {editingId && (
+        <form className="card form-card" onSubmit={handleEditSubmit} noValidate>
+          <h3>प्रतियोगिता संपादित करें</h3>
+          {message && <div className="alert alert-info">{message}</div>}
+          <label>
+            नाम<span className="required-mark">*</span>
+            <input
+              className={editErrors.name ? "input-error" : ""}
+              value={editForm.name}
+              onChange={(e) => updateEditField("name", e.target.value)}
+            />
+            {editErrors.name && <span className="field-error">{editErrors.name}</span>}
+          </label>
+          <label>
+            विवरण
+            <textarea
+              value={editForm.description}
+              onChange={(e) => updateEditField("description", e.target.value)}
+            />
+          </label>
+          <div className="form-row">
+            <label>
+              दिनांक<span className="required-mark">*</span>
+              <input
+                type="date"
+                className={editErrors.date ? "input-error" : ""}
+                value={editForm.date}
+                onChange={(e) => updateEditField("date", e.target.value)}
+              />
+              {editErrors.date && <span className="field-error">{editErrors.date}</span>}
+            </label>
+            <label>
+              समय<span className="required-mark">*</span>
+              <input
+                className={editErrors.time ? "input-error" : ""}
+                value={editForm.time}
+                onChange={(e) => updateEditField("time", e.target.value)}
+              />
+              {editErrors.time && <span className="field-error">{editErrors.time}</span>}
+            </label>
+            <label>
+              अवधि
+              <input
+                placeholder="जैसे 1 घंटा"
+                value={editForm.duration}
+                onChange={(e) => updateEditField("duration", e.target.value)}
+              />
+            </label>
+          </div>
+          <label>
+            नामांकन अंतिम तिथि/समय<span className="required-mark">*</span>
+            <input
+              type="datetime-local"
+              className={editErrors.registrationDeadline ? "input-error" : ""}
+              value={editForm.registrationDeadline}
+              onChange={(e) => updateEditField("registrationDeadline", e.target.value)}
+            />
+            {editErrors.registrationDeadline && (
+              <span className="field-error">{editErrors.registrationDeadline}</span>
+            )}
+          </label>
+          <label>
+            न्यूनतम प्रतियोगी संख्या<span className="required-mark">*</span>
+            <input
+              type="number"
+              min={1}
+              className={editErrors.minParticipants ? "input-error" : ""}
+              value={editForm.minParticipants}
+              onChange={(e) => updateEditField("minParticipants", e.target.value === "" ? "" : Number(e.target.value))}
+            />
+            {editErrors.minParticipants && <span className="field-error">{editErrors.minParticipants}</span>}
+          </label>
+          <div className="form-actions">
+            <button className="btn btn-primary" type="submit">
+              अपडेट करें
+            </button>
+            <button className="btn btn-ghost" type="button" onClick={cancelEdit}>
+              रद्द करें
+            </button>
+          </div>
+        </form>
+      )}
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -254,6 +411,9 @@ export default function AdminCompetitions() {
                 <td>
                   <button className="btn btn-ghost btn-sm" onClick={() => showAttendance(c)}>
                     QR / उपस्थिति
+                  </button>{" "}
+                  <button className="btn btn-ghost btn-sm" onClick={() => startEdit(c)}>
+                    संपादित करें
                   </button>{" "}
                   <button className="btn btn-ghost btn-sm" onClick={() => handleDeactivate(c._id)}>
                     निष्क्रिय करें

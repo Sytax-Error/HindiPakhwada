@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import PrivateRoute from "./components/PrivateRoute";
@@ -18,8 +19,28 @@ import EPatrika from "./pages/EPatrika";
 import Guests from "./pages/Guests";
 
 export default function App() {
+  const location = useLocation();
+  const isFixedLayout = location.pathname === '/admin/declare-winners';
+
+  // Apply fixed-layout class to html and body for viewport-constrained pages
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    if (isFixedLayout) {
+      html.classList.add('fixed-layout');
+      body.classList.add('fixed-layout');
+    } else {
+      html.classList.remove('fixed-layout');
+      body.classList.remove('fixed-layout');
+    }
+    return () => {
+      html.classList.remove('fixed-layout');
+      body.classList.remove('fixed-layout');
+    };
+  }, [isFixedLayout]);
+
   return (
-    <>
+    <div className={`app-layout${isFixedLayout ? ' fixed-layout' : ''}`}>
       <Navbar />
       <main className="container">
         <Routes>
@@ -68,6 +89,6 @@ export default function App() {
         </Routes>
       </main>
       <Footer />
-    </>
+    </div>
   );
 }

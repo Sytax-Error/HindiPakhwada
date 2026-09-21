@@ -25,7 +25,7 @@ export default function Navbar() {
   }
 
   return (
-    <>
+    <div className="navbar-wrapper">
       <header className="institutional-header">
         <div className="institutional-header-inner">
           <img src="/assets/NICSI-logo.png" alt="NICSI" className="nicsi-logo" />
@@ -76,6 +76,6 @@ export default function Navbar() {
           </nav>
         </div>
       </header>
-    </>
+    </div>
   );
 }
