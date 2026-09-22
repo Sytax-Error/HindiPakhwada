@@ -29,17 +29,20 @@ const photoCategories = [
     id: "essay-competition",
     title: "हिन्दी पखवाड़ा निबंध लेखन प्रतियोगिता",
     subtitle: "17 सितंबर 2026",
+    eventDate: "2026-09-17",
     folder: "17-09-2026", // Folder name under public/assets/gallery/
   },{
     id: "rajbhasha-sammelan",
     title: "छठा अखिल भारतीय राजभाषा सम्मेलन",
     subtitle: "नवी मुंबई 14-15 सितंबर 2026",
+    eventDate: "2026-09-14",
     folder: "rajbhasha-sammelan", // Folder name under public/assets/gallery/
   },
   {
     id: "hindi-pakhwada-2025",
     title: "हिन्दी पखवाड़ा 2025",
     subtitle: "",
+    eventDate: "2025-09-14",
     folder: "hindi-pakhwada-2025", // Folder name under public/assets/gallery/
   }
   
@@ -67,9 +70,11 @@ export default function PhotoGallery() {
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [categoryPages, setCategoryPages] = useState({}); // Track page number per category
   const videoRef = useRef(null);
-  const categories = [...photoCategories, ...dynamicCategories.filter(
-    (dynamicCategory) => !photoCategories.some((category) => category.id === dynamicCategory.id)
-  )];
+  const categoryMap = new Map(photoCategories.map((category) => [category.id, category]));
+  dynamicCategories.forEach((category) => categoryMap.set(category.id, category));
+  const categories = [...categoryMap.values()].sort(
+    (a, b) => new Date(b.eventDate || 0) - new Date(a.eventDate || 0)
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -82,6 +87,7 @@ export default function PhotoGallery() {
           id: category.id,
           title: category.title,
           subtitle: category.subtitle || "",
+          eventDate: category.eventDate,
           photos: [...(category.photos || [])]
             .sort((a, b) => (a.order || 0) - (b.order || 0))
             .map((photo) => photo.path),

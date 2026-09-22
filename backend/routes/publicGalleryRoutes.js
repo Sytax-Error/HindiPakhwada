@@ -6,7 +6,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const categories = await GalleryCategory.find({ isActive: true })
-      .sort({ createdAt: -1 })
+      .sort({ eventDate: -1, createdAt: -1 })
       .lean();
 
     res.json({ categories });

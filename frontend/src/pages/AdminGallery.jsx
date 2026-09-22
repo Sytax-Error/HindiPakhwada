@@ -2,16 +2,52 @@ import { useEffect, useRef, useState } from "react";
 import { Upload, Loader2, Image, Edit, Trash2, X } from "lucide-react";
 import api from "../services/api";
 
+function formatDateForDisplay(isoDate) {
+  if (!isoDate) return "";
+  const [year, month, day] = isoDate.slice(0, 10).split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function parseDisplayDate(value) {
+  const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return "";
+
+  const [, day, month, year] = match;
+  const date = new Date(`${year}-${month}-${day}T00:00:00`);
+  if (
+    date.getFullYear() !== Number(year) ||
+    date.getMonth() + 1 !== Number(month) ||
+    date.getDate() !== Number(day)
+  ) {
+    return "";
+  }
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateInput(value) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+const MAX_FILES = 20;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+
 export default function AdminGallery() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventDateInput, setEventDateInput] = useState("");
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [isDragging, setIsDragging] = useState(false);
   const submittingRef = useRef(false);
 
   async function loadCategories() {
@@ -51,8 +87,9 @@ export default function AdminGallery() {
   }
 
   async function handlePhotoUpload(files) {
-    if (!files || files.length === 0 || !title.trim()) {
-      setMessage("मुख्य शीर्षक और कम से कम एक फोटो चुनें।");
+    const validationMessage = validateForm(files, true);
+    if (validationMessage) {
+      setMessage(validationMessage);
       return false;
     }
     
@@ -65,6 +102,7 @@ export default function AdminGallery() {
         id: categoryId,
         title: title.trim(),
         subtitle: subtitle.trim(),
+        eventDate: eventDate || null,
         folder: categoryId,
       });
       createdCategoryMongoId = categoryData.category._id;
@@ -74,6 +112,8 @@ export default function AdminGallery() {
       setSelectedFiles([]);
       setTitle("");
       setSubtitle("");
+      setEventDate("");
+      setEventDateInput("");
       await loadCategories();
       return true;
     } catch (err) {
@@ -93,8 +133,9 @@ export default function AdminGallery() {
     submittingRef.current = true;
 
     if (editingCategoryId) {
-      if (!title.trim()) {
-        setMessage("मुख्य शीर्षक आवश्यक है।");
+      const validationMessage = validateForm(selectedFiles, false);
+      if (validationMessage) {
+        setMessage(validationMessage);
         submittingRef.current = false;
         return;
       }
@@ -103,6 +144,7 @@ export default function AdminGallery() {
         await api.put(`/admin/gallery/${editingCategoryId}`, {
           title: title.trim(),
           subtitle: subtitle.trim(),
+          eventDate: eventDate || null,
         });
         if (selectedFiles.length > 0) {
           const photos = await uploadPhotos(editingCategoryId, selectedFiles);
@@ -134,6 +176,9 @@ export default function AdminGallery() {
     setEditingCategoryId(category._id);
     setTitle(category.title);
     setSubtitle(category.subtitle || "");
+    const categoryDate = category.eventDate ? category.eventDate.slice(0, 10) : "";
+    setEventDate(categoryDate);
+    setEventDateInput(formatDateForDisplay(categoryDate));
     setSelectedFiles([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -142,6 +187,8 @@ export default function AdminGallery() {
     setEditingCategoryId(null);
     setTitle("");
     setSubtitle("");
+    setEventDate("");
+    setEventDateInput("");
     setSelectedFiles([]);
   }
 
@@ -170,13 +217,55 @@ export default function AdminGallery() {
     }
   }
 
-  function handleFileSelect(e) {
-    const files = Array.from(e.target.files);
-    const validFiles = files.filter(f => f.type.startsWith("image/"));
-    if (validFiles.length !== files.length) {
-      setMessage("केवल इमेज फाइलें (JPEG, PNG, WebP) चुनें।");
+  function validateForm(files, requireFiles) {
+    const trimmedTitle = title.trim();
+    const trimmedSubtitle = subtitle.trim();
+    if (trimmedTitle.length < 2 || trimmedTitle.length > 150) {
+      return "मुख्य शीर्षक 2 से 150 अक्षरों के बीच होना चाहिए।";
     }
-    setSelectedFiles(validFiles);
+    if (trimmedSubtitle.length > 250) {
+      return "उपशीर्षक 250 अक्षरों से अधिक नहीं हो सकता।";
+    }
+    if (!eventDateInput) return "कार्यक्रम दिनांक आवश्यक है।";
+    if (!eventDate) return "दिनांक DD/MM/YYYY प्रारूप में दर्ज करें।";
+    if (requireFiles && (!files || files.length === 0)) return "कम से कम एक फोटो चुनें।";
+    return "";
+  }
+
+  function selectFiles(files) {
+    if (files.length > MAX_FILES) {
+      setMessage(`एक बार में अधिकतम ${MAX_FILES} फोटो चुनें।`);
+      setSelectedFiles([]);
+      return;
+    }
+    const invalidFile = files.find((file) => !ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_FILE_SIZE);
+    if (invalidFile) {
+      setMessage("केवल JPEG, PNG, WebP फोटो चुनें और हर फोटो 10MB से कम होनी चाहिए।");
+      setSelectedFiles([]);
+      return;
+    }
+    setMessage("");
+    setSelectedFiles(files);
+  }
+
+  function handleFileSelect(e) {
+    selectFiles(Array.from(e.target.files));
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    if (!uploading) setIsDragging(true);
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!uploading) selectFiles(Array.from(e.dataTransfer.files));
   }
 
   const editingCategory = categories.find((category) => category._id === editingCategoryId);
@@ -206,6 +295,28 @@ export default function AdminGallery() {
             disabled={uploading}
           />
         </label>
+        <label>
+          <span>कार्यक्रम दिनांक</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={eventDateInput}
+            onChange={(e) => {
+              const value = formatDateInput(e.target.value);
+              const parsedDate = parseDisplayDate(value);
+              setEventDateInput(value);
+              setEventDate(parsedDate);
+              if (value.length === 10 && !parsedDate) {
+                setMessage("दिनांक DD/MM/YYYY प्रारूप में दर्ज करें।");
+              } else {
+                setMessage("");
+              }
+            }}
+            placeholder="DD/MM/YYYY"
+            maxLength={10}
+            disabled={uploading}
+          />
+        </label>
       </div>
 
       <div className="photo-upload-section">
@@ -220,7 +331,14 @@ export default function AdminGallery() {
             </button>
           )}
         </div>
-        <label className="upload-area" htmlFor="photo-upload">
+        <label
+          className={`upload-area${isDragging ? " is-dragging" : ""}`}
+          htmlFor="photo-upload"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
           <input
             id="photo-upload"
             type="file"
@@ -259,7 +377,7 @@ export default function AdminGallery() {
           <button
             className="btn btn-primary"
             onClick={handleSave}
-            disabled={uploading || !title.trim() || (!editingCategoryId && selectedFiles.length === 0)}
+            disabled={uploading || !title.trim() || (!editingCategoryId && (!eventDate || selectedFiles.length === 0))}
           >
             {uploading ? (
               <>

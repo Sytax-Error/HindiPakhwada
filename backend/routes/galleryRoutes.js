@@ -11,6 +11,23 @@ router.use(protect, adminOnly);
 const galleryRoot = path.join(__dirname, "../../frontend/public/assets/gallery");
 const legacyGalleryRoot = path.join(__dirname, "../../public/assets/gallery");
 
+function validateCategoryInput({ id, title, subtitle = "", eventDate, folder, order = 0 }) {
+  const errors = {};
+  if (id !== undefined && (!String(id).trim() || !/^[a-zA-Z0-9_-]{1,100}$/.test(String(id)))) {
+    errors.id = "ID may contain only letters, numbers, hyphens, and underscores.";
+  }
+  if (!String(title || "").trim() || String(title).trim().length < 2 || String(title).trim().length > 150) {
+    errors.title = "Title must be between 2 and 150 characters.";
+  }
+  if (String(subtitle).length > 250) errors.subtitle = "Subtitle cannot exceed 250 characters.";
+  if (!eventDate || Number.isNaN(Date.parse(eventDate))) errors.eventDate = "A valid event date is required.";
+  if (folder !== undefined && (!String(folder).trim() || !/^[a-zA-Z0-9_-]{1,100}$/.test(String(folder)))) {
+    errors.folder = "Folder may contain only letters, numbers, hyphens, and underscores.";
+  }
+  if (!Number.isInteger(Number(order)) || Number(order) < 0) errors.order = "Order must be a non-negative integer.";
+  return errors;
+}
+
 function removeGalleryFile(categoryFolder, filename) {
   [galleryRoot, legacyGalleryRoot].forEach((root) => {
     const filePath = path.join(root, categoryFolder, filename);
@@ -55,10 +72,14 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
+    const allowedTypes = {
+      ".jpg": ["image/jpeg", "image/jpg"],
+      ".jpeg": ["image/jpeg", "image/jpg"],
+      ".png": ["image/png"],
+      ".webp": ["image/webp"],
+    };
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes[extension]?.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error("Only images (jpeg, jpg, png, webp) are allowed"));
@@ -66,10 +87,19 @@ const upload = multer({
   },
 });
 
+function uploadPhotosMiddleware(req, res, next) {
+  upload.array("photos", 20)(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || "Invalid photo upload" });
+    }
+    next();
+  });
+}
+
 // GET /api/admin/gallery - Get all gallery categories with photos
 router.get("/", async (req, res) => {
   try {
-    const categories = await GalleryCategory.find({ isActive: true }).sort({ createdAt: -1 });
+    const categories = await GalleryCategory.find({ isActive: true }).sort({ eventDate: -1, createdAt: -1 });
     res.json({ categories });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch gallery", error: err.message });
@@ -79,10 +109,10 @@ router.get("/", async (req, res) => {
 // POST /api/admin/gallery - Create new category
 router.post("/", async (req, res) => {
   try {
-    const { id, title, subtitle, folder, order } = req.body;
-    
-    if (!id || !title || !folder) {
-      return res.status(400).json({ message: "ID, title, and folder are required" });
+    const { id, title, subtitle, eventDate, folder, order } = req.body;
+    const validationErrors = validateCategoryInput({ id, title, subtitle, eventDate, folder, order });
+    if (Object.keys(validationErrors).length > 0) {
+      return res.status(400).json({ message: "Please correct the gallery fields.", errors: validationErrors });
     }
 
     const existing = await GalleryCategory.findOne({ id });
@@ -94,6 +124,7 @@ router.post("/", async (req, res) => {
       id,
       title,
       subtitle: subtitle || "",
+      eventDate: eventDate || null,
       folder,
       order: order || 0,
       photos: [],
@@ -112,11 +143,15 @@ router.post("/", async (req, res) => {
 // PUT /api/admin/gallery/:categoryId - Update category
 router.put("/:categoryId", async (req, res) => {
   try {
-    const { title, subtitle, folder, order, isActive } = req.body;
-    
+    const { title, subtitle, eventDate, folder, order, isActive } = req.body;
+    const validationErrors = validateCategoryInput({ title, subtitle, eventDate, folder, order });
+    if (Object.keys(validationErrors).length > 0) {
+      return res.status(400).json({ message: "Please correct the gallery fields.", errors: validationErrors });
+    }
+
     const category = await GalleryCategory.findByIdAndUpdate(
       req.params.categoryId,
-      { title, subtitle, folder, order, isActive },
+      { title: String(title).trim(), subtitle: String(subtitle || "").trim(), eventDate, ...(folder ? { folder } : {}), ...(order !== undefined ? { order } : {}), ...(isActive !== undefined ? { isActive: Boolean(isActive) } : {}) },
       { new: true, runValidators: true }
     );
 
@@ -147,7 +182,7 @@ router.delete("/:categoryId", async (req, res) => {
 });
 
 // POST /api/admin/gallery/:categoryId/photos - Upload photos to category
-router.post("/:categoryId/photos", upload.array("photos", 20), async (req, res) => {
+router.post("/:categoryId/photos", uploadPhotosMiddleware, async (req, res) => {
   try {
     const category = await GalleryCategory.findById(req.params.categoryId);
     if (!category) {

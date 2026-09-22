@@ -1505,7 +1505,7 @@ h1 { color: var(--primary-dark); font-weight: 700; }
 
 .category-selector {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   padding: 20px;
   margin-bottom: 18px;
@@ -1811,6 +1811,12 @@ h1 { color: var(--primary-dark); font-weight: 700; }
   background: var(--primary-soft);
 }
 
+.upload-area.is-dragging {
+  border-color: var(--primary);
+  background: #e5e9ff;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
 .upload-area:active {
   background: #e5e9ff;
 }
@@ -2083,8 +2089,18 @@ h1 { color: var(--primary-dark); font-weight: 700; }
   }
 
   .admin-entry-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: 64px minmax(0, 1fr);
     gap: 10px;
+  }
+
+  .admin-entry-thumb {
+    width: 64px;
+    height: 56px;
+  }
+
+  .admin-entry-image-count,
+  .admin-entry-actions {
+    grid-column: 1 / -1;
   }
 
   .admin-entry-actions {
