@@ -443,7 +443,7 @@ tbody tr:nth-child(even):hover { background: #f5f5fd; }
   display: flex;
   flex-direction: column;
   gap: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 28px 0;
   border-radius: var(--radius);
 }
 .form-card h3 { margin: 0 0 4px; color: var(--primary-dark); }
@@ -756,8 +756,8 @@ tbody tr:nth-child(even):hover { background: #f5f5fd; }
 
 .app-layout.fixed-layout > main.container {
   overflow: hidden;
-  padding-top: 150px; /* Account for fixed navbar (reduced header height) */
-  padding-bottom: 24px; /* Reduced from 72px to give more space to content */
+  padding-top: 180px; /* Account for institutional header, announcement bar, and navbar */
+  padding-bottom: 48px;
 }
 
 .app-layout.fixed-layout > main.container > .page {

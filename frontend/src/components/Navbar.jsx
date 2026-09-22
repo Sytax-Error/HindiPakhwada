@@ -58,10 +58,7 @@ export default function Navbar() {
             <NavLink to="/e-patrika" className={navClass}>ई-पत्रिका</NavLink>
             <NavLink to="/guests" className={navClass}>अतिथि परिचय</NavLink>
             {user?.role === "admin" && (
-              <>
-                <NavLink to="/admin" className={navClass}>एडमिन</NavLink>
-                <NavLink to="/admin/gallery" className={navClass}>गैलरी प्रबंधन</NavLink>
-              </>
+              <NavLink to="/admin" className={navClass}>एडमिन</NavLink>
             )}
             {user ? (
               <>
