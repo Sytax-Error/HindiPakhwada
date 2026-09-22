@@ -11,6 +11,7 @@ import Results from "./pages/Results";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminCompetitions from "./pages/AdminCompetitions";
 import AdminDeclareWinners from "./pages/AdminDeclareWinners";
+import AdminGallery from "./pages/AdminGallery";
 import RajbhashaSamiti from "./pages/RajbhashaSamiti";
 import Attendance from "./pages/Attendance";
 import Directions from "./pages/Directions";
@@ -83,6 +84,14 @@ export default function App() {
             element={
               <PrivateRoute adminOnly>
                 <AdminDeclareWinners />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/gallery"
+            element={
+              <PrivateRoute adminOnly>
+                <AdminGallery />
               </PrivateRoute>
             }
           />

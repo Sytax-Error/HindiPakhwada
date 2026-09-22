@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import api from "../services/api";
 
 // Dynamic import of all gallery images using Vite's import.meta.glob
 // This automatically imports all images from the specified folders
@@ -54,13 +55,47 @@ photoCategories.forEach((category) => {
 const PREVIEW_COUNT = 6; // Number of photos to show in single row preview
 const PHOTOS_PER_PAGE = 12; // 2 rows of 6 photos each
 
+function getPhotoUrl(photoPath) {
+  return photoPath.startsWith("/") ? photoPath : `/assets/gallery/${photoPath}`;
+}
+
 export default function PhotoGallery() {
+  const [dynamicCategories, setDynamicCategories] = useState([]);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
   const [openedVideo, setOpenedVideo] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [categoryPages, setCategoryPages] = useState({}); // Track page number per category
   const videoRef = useRef(null);
+  const categories = [...photoCategories, ...dynamicCategories.filter(
+    (dynamicCategory) => !photoCategories.some((category) => category.id === dynamicCategory.id)
+  )];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    api.get("/gallery")
+      .then(({ data }) => {
+        if (!isMounted) return;
+
+        const databaseCategories = (data.categories || []).map((category) => ({
+          id: category.id,
+          title: category.title,
+          subtitle: category.subtitle || "",
+          photos: [...(category.photos || [])]
+            .sort((a, b) => (a.order || 0) - (b.order || 0))
+            .map((photo) => photo.path),
+        }));
+        setDynamicCategories(databaseCategories);
+      })
+      .catch(() => {
+        // Static gallery content remains available when the API is unavailable.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function showPreviousPhoto(categoryPhotos, currentIndex) {
     setSelectedPhoto((current) => (current - 1 + categoryPhotos.length) % categoryPhotos.length);
@@ -79,11 +114,11 @@ export default function PhotoGallery() {
         setExpandedCategory(null);
       }
       if (selectedPhoto !== null && event.key === "ArrowLeft") {
-        const category = photoCategories.find((c) => c.id === expandedCategory);
+        const category = categories.find((c) => c.id === expandedCategory);
         if (category) showPreviousPhoto(category.photos, selectedPhoto);
       }
       if (selectedPhoto !== null && event.key === "ArrowRight") {
-        const category = photoCategories.find((c) => c.id === expandedCategory);
+        const category = categories.find((c) => c.id === expandedCategory);
         if (category) showNextPhoto(category.photos, selectedPhoto);
       }
     };
@@ -93,7 +128,7 @@ export default function PhotoGallery() {
       document.removeEventListener("keydown", closeOnEscape);
       document.body.style.overflow = "";
     };
-  }, [isVideoOpen, selectedPhoto, expandedCategory]);
+  }, [isVideoOpen, selectedPhoto, expandedCategory, dynamicCategories]);
 
   useEffect(() => {
     if (isVideoOpen) videoRef.current?.play().catch(() => {});
@@ -144,7 +179,7 @@ export default function PhotoGallery() {
       </section>
       <section className="gallery-section">
         <h2 className="gallery-section-title">फोटो</h2>
-        {photoCategories.map((category) => {
+        {categories.map((category) => {
           const isExpanded = expandedCategory === category.id;
           const previewPhotos = category.photos.slice(0, PREVIEW_COUNT);
           const remainingCount = category.photos.length - PREVIEW_COUNT;
@@ -185,7 +220,7 @@ export default function PhotoGallery() {
                               onClick={() => handlePhotoClick(category.id, photoIndex)}
                               aria-label={`${category.title} - फोटो ${photoIndex + 1} बड़ा करके देखें`}
                             >
-                              <img src={`/assets/gallery/${file}`} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
+                              <img src={getPhotoUrl(file)} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
                             </button>
                           </figure>
                         );
@@ -222,7 +257,7 @@ export default function PhotoGallery() {
                               onClick={() => handlePhotoClick(category.id, photoIndex)}
                               aria-label={`${category.title} - फोटो ${photoIndex + 1} बड़ा करके देखें`}
                             >
-                              <img src={`/assets/gallery/${file}`} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
+                              <img src={getPhotoUrl(file)} alt={`${category.title} - फोटो ${photoIndex + 1}`} />
                             </button>
                           </figure>
                         );
@@ -287,12 +322,12 @@ export default function PhotoGallery() {
         }}>
           <button className="photo-modal-close" type="button" onClick={() => { setSelectedPhoto(null); setExpandedCategory(null); }} aria-label="फोटो बंद करें">×</button>
           <button className="photo-modal-arrow photo-modal-prev" type="button" onClick={() => {
-            const category = photoCategories.find((c) => c.id === expandedCategory);
+            const category = categories.find((c) => c.id === expandedCategory);
             if (category) showPreviousPhoto(category.photos, selectedPhoto);
           }} aria-label="पिछली फोटो">‹</button>
-          <img src={`/assets/gallery/${photoCategories.find((c) => c.id === expandedCategory).photos[selectedPhoto]}`} alt={`${photoCategories.find((c) => c.id === expandedCategory).title} - फोटो ${selectedPhoto + 1}`} />
+          <img src={categories.find((c) => c.id === expandedCategory).photos[selectedPhoto]} alt={`${categories.find((c) => c.id === expandedCategory).title} - फोटो ${selectedPhoto + 1}`} />
           <button className="photo-modal-arrow photo-modal-next" type="button" onClick={() => {
-            const category = photoCategories.find((c) => c.id === expandedCategory);
+            const category = categories.find((c) => c.id === expandedCategory);
             if (category) showNextPhoto(category.photos, selectedPhoto);
           }} aria-label="अगली फोटो">›</button>
         </div>,

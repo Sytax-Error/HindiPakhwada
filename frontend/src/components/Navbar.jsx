@@ -57,7 +57,12 @@ export default function Navbar() {
             <NavLink to="/photo-gallery" className={navClass}>गैलरी</NavLink>
             <NavLink to="/e-patrika" className={navClass}>ई-पत्रिका</NavLink>
             <NavLink to="/guests" className={navClass}>अतिथि परिचय</NavLink>
-            {user?.role === "admin" && <NavLink to="/admin" className={navClass}>एडमिन</NavLink>}
+            {user?.role === "admin" && (
+              <>
+                <NavLink to="/admin" className={navClass}>एडमिन</NavLink>
+                <NavLink to="/admin/gallery" className={navClass}>गैलरी प्रबंधन</NavLink>
+              </>
+            )}
             {user ? (
               <>
                 <span className="nav-user">{user.name}</span>

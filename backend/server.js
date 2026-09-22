@@ -9,6 +9,8 @@ const participationRoutes = require("./routes/participationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
+const galleryRoutes = require("./routes/galleryRoutes");
+const publicGalleryRoutes = require("./routes/publicGalleryRoutes");
 
 const app = express();
 
@@ -23,6 +25,8 @@ app.use("/api/participations", participationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/gallery", publicGalleryRoutes);
+app.use("/api/admin/gallery", galleryRoutes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
