@@ -47,8 +47,10 @@ export default function AdminGallery() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedPreviews, setSelectedPreviews] = useState([]);
   const [isDragging, setIsDragging] = useState(false);
   const submittingRef = useRef(false);
+  const selectedPreviewsRef = useRef([]);
 
   async function loadCategories() {
     try {
@@ -63,7 +65,23 @@ export default function AdminGallery() {
 
   useEffect(() => {
     loadCategories();
+    return () => selectedPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
   }, []);
+
+  function clearSelectedFiles() {
+    selectedPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+    selectedPreviewsRef.current = [];
+    setSelectedFiles([]);
+    setSelectedPreviews([]);
+  }
+
+  function setSelectedFilesWithPreviews(files) {
+    selectedPreviewsRef.current.forEach((preview) => URL.revokeObjectURL(preview));
+    const previews = files.map((file) => URL.createObjectURL(file));
+    selectedPreviewsRef.current = previews;
+    setSelectedFiles(files);
+    setSelectedPreviews(previews);
+  }
 
   async function uploadPhotos(categoryMongoId, files) {
     const formData = new FormData();
@@ -109,7 +127,7 @@ export default function AdminGallery() {
 
       const photos = await uploadPhotos(createdCategoryMongoId, files);
       setMessage(`${photos.length} फोटो अपलोड की गईं।`);
-      setSelectedFiles([]);
+      clearSelectedFiles();
       setTitle("");
       setSubtitle("");
       setEventDate("");
@@ -179,7 +197,7 @@ export default function AdminGallery() {
     const categoryDate = category.eventDate ? category.eventDate.slice(0, 10) : "";
     setEventDate(categoryDate);
     setEventDateInput(formatDateForDisplay(categoryDate));
-    setSelectedFiles([]);
+    clearSelectedFiles();
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -189,7 +207,7 @@ export default function AdminGallery() {
     setSubtitle("");
     setEventDate("");
     setEventDateInput("");
-    setSelectedFiles([]);
+    clearSelectedFiles();
   }
 
   async function handleDelete(category) {
@@ -235,17 +253,17 @@ export default function AdminGallery() {
   function selectFiles(files) {
     if (files.length > MAX_FILES) {
       setMessage(`एक बार में अधिकतम ${MAX_FILES} फोटो चुनें।`);
-      setSelectedFiles([]);
+      clearSelectedFiles();
       return;
     }
     const invalidFile = files.find((file) => !ALLOWED_IMAGE_TYPES.has(file.type) || file.size > MAX_FILE_SIZE);
     if (invalidFile) {
       setMessage("केवल JPEG, PNG, WebP फोटो चुनें और हर फोटो 10MB से कम होनी चाहिए।");
-      setSelectedFiles([]);
+      clearSelectedFiles();
       return;
     }
     setMessage("");
-    setSelectedFiles(files);
+    setSelectedFilesWithPreviews(files);
   }
 
   function handleFileSelect(e) {
@@ -363,7 +381,8 @@ export default function AdminGallery() {
           <div className="selected-files-preview">
             {selectedFiles.slice(0, 6).map((file, idx) => (
               <div key={idx} className="file-preview">
-                <span>{file.name}</span>
+                <img src={selectedPreviews[idx]} alt="" />
+                <span className="file-preview-name">{file.name}</span>
                 <span>{(file.size / 1024 / 1024).toFixed(2)} MB</span>
               </div>
             ))}
@@ -398,7 +417,7 @@ export default function AdminGallery() {
           {selectedFiles.length > 0 && (
             <button
               className="btn btn-ghost"
-              onClick={() => setSelectedFiles([])}
+              onClick={clearSelectedFiles}
               disabled={uploading}
             >
               साफ़ करें

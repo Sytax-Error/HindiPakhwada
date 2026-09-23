@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const connectDB = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
@@ -16,6 +17,7 @@ const app = express();
 
 app.use(cors({ origin: process.env.CLIENT_URL || "*" }));
 app.use(express.json());
+app.use("/assets/gallery", express.static(path.join(__dirname, "../frontend/public/assets/gallery")));
 
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 

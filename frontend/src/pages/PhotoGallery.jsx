@@ -331,7 +331,10 @@ export default function PhotoGallery() {
             const category = categories.find((c) => c.id === expandedCategory);
             if (category) showPreviousPhoto(category.photos, selectedPhoto);
           }} aria-label="पिछली फोटो">‹</button>
-          <img src={categories.find((c) => c.id === expandedCategory).photos[selectedPhoto]} alt={`${categories.find((c) => c.id === expandedCategory).title} - फोटो ${selectedPhoto + 1}`} />
+          <img
+            src={getPhotoUrl(categories.find((c) => c.id === expandedCategory).photos[selectedPhoto])}
+            alt={`${categories.find((c) => c.id === expandedCategory).title} - फोटो ${selectedPhoto + 1}`}
+          />
           <button className="photo-modal-arrow photo-modal-next" type="button" onClick={() => {
             const category = categories.find((c) => c.id === expandedCategory);
             if (category) showNextPhoto(category.photos, selectedPhoto);
