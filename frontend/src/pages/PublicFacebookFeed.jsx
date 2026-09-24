@@ -1,28 +1,64 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FacebookEmbed } from "react-social-media-embed";
 import api from "../services/api";
 
 const FACEBOOK_DESKTOP_WIDTH = 560;
+const PAGE_SIZE = 1;
 
 export default function PublicFacebookFeed() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
   const [embedWidth, setEmbedWidth] = useState(FACEBOOK_DESKTOP_WIDTH);
+  const isFetchingRef = useRef(false);
+  const pageRef = useRef(1);
+  const loadMoreRef = useRef(null);
+
+  async function loadPosts(nextPage = 1, shouldReset = false) {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    setLoadingMore(true);
+
+    try {
+      const { data } = await api.get("/social-posts", {
+        params: { page: nextPage, limit: PAGE_SIZE },
+      });
+
+      const nextPosts = data.posts || [];
+
+      if (shouldReset) {
+        setPosts(nextPosts);
+      } else {
+        setPosts((current) => [...current, ...nextPosts]);
+      }
+
+      const nextPageNumber = Number(data.page || nextPage);
+      pageRef.current = nextPageNumber;
+      setPage(nextPageNumber);
+      setHasMore(Boolean(data.hasMore));
+    } catch (err) {
+      console.error(err);
+      if (shouldReset) {
+        setPosts([]);
+      }
+    } finally {
+      isFetchingRef.current = false;
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadPosts() {
-      try {
-        const { data } = await api.get("/social-posts");
-        setPosts(data.posts || []);
-      } catch (err) {
-        console.error(err);
-        setPosts([]);
-      } finally {
-        setLoading(false);
-      }
+    async function initialLoad() {
+      setLoading(true);
+      pageRef.current = 1;
+      setPage(1);
+      await loadPosts(1, true);
+      setLoading(false);
     }
 
-    loadPosts();
+    initialLoad();
   }, []);
 
   useEffect(() => {
@@ -36,7 +72,23 @@ export default function PublicFacebookFeed() {
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  const feedRows = useMemo(() => posts.filter((post) => post && post.url), [posts]);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || loading || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry || !entry.isIntersecting) return;
+        if (isFetchingRef.current) return;
+        loadPosts(pageRef.current + 1, false);
+      },
+      { rootMargin: "160px 0px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading, page]);
 
   return (
     <div className="page social-test-page">
@@ -53,10 +105,10 @@ export default function PublicFacebookFeed() {
         <div className="social-feed">
           {loading ? (
             <div className="social-empty-state">पोस्ट लोड हो रही हैं...</div>
-          ) : feedRows.length === 0 ? (
+          ) : posts.length === 0 ? (
             <div className="social-empty-state">अभी कोई सार्वजनिक फेसबुक पोस्ट उपलब्ध नहीं है।</div>
           ) : (
-            feedRows.map((post, index) => (
+            posts.filter((post) => post && post.url).map((post, index) => (
               <article className="social-feed-post" key={post._id || `${post.url}-${index}`}>
                 <div className="social-feed-header">
                   <div className="social-feed-author">
@@ -80,7 +132,14 @@ export default function PublicFacebookFeed() {
               </article>
             ))
           )}
+
+          {!loading && hasMore && (
+            <div ref={loadMoreRef} className="social-load-more">
+              {loadingMore ? "और पोस्ट लोड हो रहे हैं..." : "स्क्रॉल करके और पोस्ट देखें"}
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );

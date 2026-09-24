@@ -1,5 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import PrivateRoute from "./components/PrivateRoute";
@@ -25,6 +25,17 @@ import AdminSocialPosts from "./pages/AdminSocialPosts";
 export default function App() {
   const location = useLocation();
   const isFixedLayout = location.pathname === '/admin/declare-winners';
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 0);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Apply fixed-layout class to html and body for viewport-constrained pages
   useEffect(() => {
@@ -110,6 +121,18 @@ export default function App() {
           />
         </Routes>
       </main>
+
+      {showScrollTop && (
+        <button
+          type="button"
+          className="scroll-to-top-btn"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Go to top"
+        >
+          ↑ ऊपर जाएं
+        </button>
+      )}
+
       <Footer />
     </div>
   );

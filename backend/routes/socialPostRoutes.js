@@ -34,11 +34,24 @@ function handleValidation(req, res, next) {
 
 publicRouter.get("/", async (req, res) => {
   try {
-    const posts = await SocialPost.find({ platform: "facebook", status: "published", isActive: true })
-      .sort({ sortOrder: 1, publishedAt: -1, createdAt: -1 })
-      .lean();
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(12, Math.max(1, Number(req.query.limit) || 1));
+    const skip = (page - 1) * limit;
 
-    res.json({ posts });
+    const query = { platform: "facebook", status: "published", isActive: true };
+
+    const [posts, total] = await Promise.all([
+      SocialPost.find(query)
+        .sort({ sortOrder: 1, publishedAt: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      SocialPost.countDocuments(query),
+    ]);
+
+    const hasMore = page * limit < total;
+
+    res.json({ posts, page, limit, total, hasMore });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch social posts", error: err.message });
   }
