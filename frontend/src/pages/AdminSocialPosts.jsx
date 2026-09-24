@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { FacebookEmbed } from "react-social-media-embed";
 import api from "../services/api";
+
+const PAGE_SIZE = 3;
+const PREVIEW_WIDTH = 560;
+const PREVIEW_HEIGHT = 220;
 
 const DEFAULT_FORM = {
   url: "",
@@ -28,11 +33,23 @@ export default function AdminSocialPosts() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const totalPublished = useMemo(
     () => posts.filter((post) => post.status === "published" && post.isActive).length,
     [posts]
   );
+
+  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStart = (safeCurrentPage - 1) * PAGE_SIZE;
+  const paginatedPosts = posts.slice(pageStart, pageStart + PAGE_SIZE);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   async function loadPosts() {
     try {
@@ -48,6 +65,10 @@ export default function AdminSocialPosts() {
   useEffect(() => {
     loadPosts();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [posts.length]);
 
   function resetForm() {
     setForm(DEFAULT_FORM);
@@ -209,30 +230,73 @@ export default function AdminSocialPosts() {
         ) : posts.length === 0 ? (
           <p className="empty-state">अभी कोई फेसबुक पोस्ट नहीं जोड़ा गया है।</p>
         ) : (
-          <div className="admin-list">
-            {posts.map((post) => (
-              <div className="admin-list-item" key={post._id}>
-                <div className="admin-list-main">
-                  <div className="admin-list-badges">
-                    <span className="tag tag-facebook">Facebook</span>
-                    <span className={`tag tag-status ${post.status}`}>{statusLabelMap[post.status] || post.status}</span>
-                    {!post.isActive && <span className="tag tag-muted">छुपा हुआ</span>}
+          <>
+            <div className="admin-list">
+              {paginatedPosts.map((post) => (
+                <div className="admin-list-item" key={post._id}>
+                  <div className="admin-list-main">
+                    <div className="admin-list-badges">
+                      <span className="tag tag-facebook">Facebook</span>
+                      <span className={`tag tag-status ${post.status}`}>{statusLabelMap[post.status] || post.status}</span>
+                      {!post.isActive && <span className="tag tag-muted">छुपा हुआ</span>}
+                    </div>
+                    <strong>{post.title || "शीर्षक रहित पोस्ट"}</strong>
+                    <div className="admin-list-url">{post.url}</div>
+                    <div className="admin-post-preview">
+                      <FacebookEmbed
+                        url={post.url}
+                        width={PREVIEW_WIDTH}
+                        height={PREVIEW_HEIGHT}
+                        style={{ width: PREVIEW_WIDTH, height: PREVIEW_HEIGHT, maxWidth: "100%" }}
+                      />
+                    </div>
                   </div>
-                  <strong>{post.title || "शीर्षक रहित पोस्ट"}</strong>
-                  <div className="admin-list-url">{post.url}</div>
-                </div>
 
-                <div className="admin-list-actions">
-                  <button type="button" className="btn btn-ghost" onClick={() => handleEdit(post)}>
-                    संपादित करें
-                  </button>
-                  <button type="button" className="btn btn-primary danger" onClick={() => handleDelete(post._id)}>
-                    हटाएँ
-                  </button>
+                  <div className="admin-list-actions">
+                    <button type="button" className="btn btn-ghost" onClick={() => handleEdit(post)}>
+                      संपादित करें
+                    </button>
+                    <button type="button" className="btn btn-primary danger" onClick={() => handleDelete(post._id)}>
+                      हटाएँ
+                    </button>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="admin-list-pagination" aria-label="Facebook post pagination">
+                <button
+                  className="gallery-page-button"
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                  disabled={safeCurrentPage === 1}
+                >
+                  पिछला
+                </button>
+
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`gallery-page-button${page === safeCurrentPage ? " is-active" : ""}`}
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  className="gallery-page-button"
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                  disabled={safeCurrentPage === totalPages}
+                >
+                  अगला
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>
