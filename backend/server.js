@@ -12,6 +12,7 @@ const certificateRoutes = require("./routes/certificateRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const galleryRoutes = require("./routes/galleryRoutes");
 const publicGalleryRoutes = require("./routes/publicGalleryRoutes");
+const { publicRouter: socialPublicRouter, adminRouter: socialAdminRouter } = require("./routes/socialPostRoutes");
 
 const app = express();
 
@@ -28,6 +29,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/gallery", publicGalleryRoutes);
+app.use("/api/social-posts", socialPublicRouter);
+app.use("/api/admin/social-posts", socialAdminRouter);
 app.use("/api/admin/gallery", galleryRoutes);
 
 // 404 handler

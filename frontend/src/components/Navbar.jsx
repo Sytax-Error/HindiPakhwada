@@ -55,6 +55,7 @@ export default function Navbar() {
             <NavLink to="/results" className={navClass}>परिणाम</NavLink>
             {user && <NavLink to="/my-participations" className={navClass}>मेरी प्रविष्टियाँ</NavLink>}
             <NavLink to="/photo-gallery" className={navClass}>गैलरी</NavLink>
+            <NavLink to="/social-posts" className={navClass}>सामाजिक पोस्ट</NavLink>
             <NavLink to="/e-patrika" className={navClass}>ई-पत्रिका</NavLink>
             <NavLink to="/guests" className={navClass}>अतिथि परिचय</NavLink>
             {user?.role === "admin" && (

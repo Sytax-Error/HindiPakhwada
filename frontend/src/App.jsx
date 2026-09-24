@@ -19,6 +19,8 @@ import PhotoGallery from "./pages/PhotoGallery";
 import EPatrika from "./pages/EPatrika";
 import Guests from "./pages/Guests";
 import SocialEmbedTest from "./pages/SocialEmbedTest";
+import PublicFacebookFeed from "./pages/PublicFacebookFeed";
+import AdminSocialPosts from "./pages/AdminSocialPosts";
 
 export default function App() {
   const location = useLocation();
@@ -57,6 +59,7 @@ export default function App() {
           <Route path="/e-patrika" element={<EPatrika />} />
           <Route path="/guests" element={<Guests />} />
           <Route path="/social-embed-test" element={<SocialEmbedTest />} />
+          <Route path="/social-posts" element={<PublicFacebookFeed />} />
           <Route
             path="/my-participations"
             element={
@@ -94,6 +97,14 @@ export default function App() {
             element={
               <PrivateRoute adminOnly>
                 <AdminGallery />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/admin/social-posts"
+            element={
+              <PrivateRoute adminOnly>
+                <AdminSocialPosts />
               </PrivateRoute>
             }
           />

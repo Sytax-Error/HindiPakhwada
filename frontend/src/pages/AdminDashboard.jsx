@@ -77,6 +77,9 @@ export default function AdminDashboard() {
         <Link className="btn btn-primary" to="/admin/gallery">
           गैलरी प्रबंधित करें
         </Link>
+        <Link className="btn btn-primary" to="/admin/social-posts">
+          Facebook Posts प्रबंधित करें
+        </Link>
       </div>
 
       <form className="card form-card site-settings-form" onSubmit={saveSettings} noValidate>
