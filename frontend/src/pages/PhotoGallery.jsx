@@ -70,6 +70,13 @@ export default function PhotoGallery() {
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [categoryPages, setCategoryPages] = useState({}); // Track page number per category
   const videoRef = useRef(null);
+
+  function getCategoryPage(categoryId, totalPhotos) {
+    const totalPages = Math.max(1, Math.ceil(totalPhotos / PHOTOS_PER_PAGE));
+    const rawPage = categoryPages[categoryId] || 1;
+    return Math.min(Math.max(rawPage, 1), totalPages);
+  }
+
   const categoryMap = new Map(photoCategories.map((category) => [category.id, category]));
   dynamicCategories.forEach((category) => categoryMap.set(category.id, category));
   const categories = [...categoryMap.values()].sort(
@@ -134,7 +141,19 @@ export default function PhotoGallery() {
       document.removeEventListener("keydown", closeOnEscape);
       document.body.style.overflow = "";
     };
-  }, [isVideoOpen, selectedPhoto, expandedCategory, dynamicCategories]);
+  }, [isVideoOpen, selectedPhoto, expandedCategory, categories]);
+
+  useEffect(() => {
+    setCategoryPages((prev) => {
+      const next = { ...prev };
+      categories.forEach((category) => {
+        const totalPages = Math.max(1, Math.ceil((category.photos?.length || 0) / PHOTOS_PER_PAGE));
+        const currentPage = next[category.id] || 1;
+        next[category.id] = Math.min(Math.max(currentPage, 1), totalPages);
+      });
+      return next;
+    });
+  }, [categories]);
 
   useEffect(() => {
     if (isVideoOpen) videoRef.current?.play().catch(() => {});
@@ -191,8 +210,8 @@ export default function PhotoGallery() {
           const remainingCount = category.photos.length - PREVIEW_COUNT;
           
           // Pagination for expanded view
-          const currentPage = categoryPages[category.id] || 1;
-          const totalPages = Math.ceil(category.photos.length / PHOTOS_PER_PAGE);
+          const totalPages = Math.max(1, Math.ceil(category.photos.length / PHOTOS_PER_PAGE));
+          const currentPage = getCategoryPage(category.id, category.photos.length);
           const startIndex = (currentPage - 1) * PHOTOS_PER_PAGE;
           const endIndex = startIndex + PHOTOS_PER_PAGE;
           const paginatedPhotos = category.photos.slice(startIndex, endIndex);

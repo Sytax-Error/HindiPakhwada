@@ -503,6 +503,224 @@ tbody tr:nth-child(even):hover { background: #f5f5fd; }
   font-size: 0.8rem;
 }
 
+.social-test-page {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
+
+.social-page-shell {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(231, 233, 242, 0.9);
+  border-radius: 28px;
+  box-shadow: 0 18px 50px rgba(31, 41, 90, 0.08);
+  overflow: hidden;
+}
+
+.social-page-header {
+  padding: 28px clamp(20px, 4vw, 40px) 18px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(79, 70, 229, 0.04), rgba(79, 70, 229, 0.01));
+}
+
+.social-page-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.social-page-badge,
+.social-page-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.social-page-badge {
+  background: #e7f0ff;
+  color: #1d4ed8;
+}
+
+.social-page-pill {
+  background: #eafaf0;
+  color: #15803d;
+}
+
+.social-page-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.1;
+  color: #1c1f31;
+}
+
+.social-page-header p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.social-feed {
+  width: min(100%, 642px);
+  margin: 0 auto;
+  padding: 22px clamp(14px, 3vw, 24px) 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.social-feed-post {
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(231, 233, 242, 0.95);
+  border-radius: 22px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+  padding: 16px 16px 14px;
+}
+
+.social-feed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.social-feed-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-feed-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #1877f2, #0d5ad7);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.social-feed-author h3 {
+  margin: 0;
+  color: var(--primary-dark);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.social-feed-author span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 2px;
+}
+
+.social-feed-menu {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-feed-menu:hover {
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.social-feed-body {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.social-feed-body > div {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.social-embed-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+.social-feed-post iframe {
+  width: 100% !important;
+  max-width: 100%;
+  min-height: 540px;
+  border: 0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+@media (max-width: 700px) {
+  .social-feed-post iframe {
+    min-height: 420px;
+  }
+}
+
+.social-load-more {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 8px 0 4px;
+}
+
+@media (max-width: 960px) {
+  .social-page-shell {
+    border-radius: 18px;
+  }
+}
+
+@media (max-width: 700px) {
+  .social-page-header {
+    padding: 20px 16px 14px;
+  }
+
+  .social-page-header h1 {
+    font-size: 2rem;
+  }
+
+  .social-feed {
+    padding: 14px 10px 24px;
+    gap: 14px;
+  }
+
+  .social-feed-post {
+    padding: 12px 10px 10px;
+    border-radius: 16px;
+  }
+
+  .social-feed-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .social-feed-post iframe {
+    min-height: 420px;
+  }
+}
+
 /* Admin */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin: 18px 0 28px; }
 .stat-card {

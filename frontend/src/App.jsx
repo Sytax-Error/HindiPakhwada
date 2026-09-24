@@ -18,6 +18,7 @@ import Directions from "./pages/Directions";
 import PhotoGallery from "./pages/PhotoGallery";
 import EPatrika from "./pages/EPatrika";
 import Guests from "./pages/Guests";
+import SocialEmbedTest from "./pages/SocialEmbedTest";
 
 export default function App() {
   const location = useLocation();
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/photo-gallery" element={<PhotoGallery />} />
           <Route path="/e-patrika" element={<EPatrika />} />
           <Route path="/guests" element={<Guests />} />
+          <Route path="/social-embed-test" element={<SocialEmbedTest />} />
           <Route
             path="/my-participations"
             element={
